@@ -1,0 +1,835 @@
+# 1- Importing Libraries
+#........................................................................................
+%matplotlib inline
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+import sklearn
+import warnings
+warnings.filterwarnings('ignore')
+import xgboost as xgb               #????? for error of ModuleNotFoundError:    use "!pip install xgboost"
+
+from numpy import savetxt
+
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
+#import mlfinlab as ml #for clustering feature importance but it seems that it is not working on this python version
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
+#import shap
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib.pyplot as plt
+import seaborn as sns
+#........................................................................................
+
+
+
+# 2- Reading Dataset and Merging Dataet
+#........................................................................................
+# Read the normalized test and train datasets
+test_data = pd.read_csv('normalized_test_data.csv')
+train_data = pd.read_csv('normalized_train_data.csv')
+
+# Combine the two datasets into a final merged dataset
+merged_data = pd.concat([train_data, test_data], ignore_index=True)
+
+# Save the merged dataset to a CSV file
+merged_data.to_csv('Merged_data.csv', index=False)
+
+# Read the merged data for future use
+df = pd.read_csv('Merged_data.csv')
+
+
+## 2-1- Nature of Dataset
+
+df.head()
+df.keys ()
+#........................................................................................
+
+
+
+# 3- EDA
+
+
+#........................................................................................
+
+## 3-1- Cleaning Dataset
+df['output'] = df['output'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input1'] = df['input1'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input2'] = df['input2'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input3'] = df['input3'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input4'] = df['input4'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input5'] = df['input5'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input6'] = df['input6'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input7'] = df['input7'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input8'] = df['input8'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input9'] = df['input9'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input10'] = df['input10'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input11'] = df['input11'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input12'] = df['input12'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input13'] = df['input13'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input14'] = df['input14'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input15'] = df['input15'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input16'] = df['input16'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input17'] = df['input17'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input18'] = df['input18'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input19'] = df['input19'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input20'] = df['input20'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+df['input21'] = df['input21'].replace([' ',','],'',regex=True)    # modifying , and spaces in column of 'Survived' of dataframe of “data”
+
+
+
+## 3-2- Checking whether ther is NAN values or not
+df.isnull().sum()  #how many null values are there in each columns of “data”
+
+
+
+
+## 3-3- Cleaning Outliers
+from scipy import stats
+df_cleaned = df[(np.abs(stats.zscore(df.iloc[:, 1:])) < 3).all(axis=1)]
+
+## 3-3-1- checking how many data points were deleted
+len(df)
+len(df_cleaned)
+
+#........................................................................................
+
+
+
+# 4- Feature Importance (FI) Analysis
+
+#........................................................................................
+## 4-1- Correlation Matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# Set font to Times New Roman
+plt.rcParams["font.family"] = "Times New Roman"
+
+# Compute correlation matrix
+corr = df_cleaned.corr(method='pearson')  # You can change 'pearson' to 'spearman' or 'kendall' as needed
+
+# Create the heatmap with blue for positive and red for negative
+fig = plt.figure(figsize=(15, 12))
+r = sns.heatmap(corr, cmap='seismic', annot=True, center=0)
+
+# Set the title for the heatmap
+r.set_title("Correlation")
+
+# Sort the correlation to find the most influential features on "output"
+# Replace "output" with the actual column name for the feature you're targeting
+corr_sorted = corr.sort_values(by=["output"], ascending=False).iloc[0].sort_values(ascending=False)
+print(corr_sorted)
+
+# Save the figure (uncomment if needed)
+# image_format = 'JPEG'  # e.g .png, .svg, .eps etc.
+# image_name = 'myimage.JPEG'
+# fig.savefig(image_name, format=image_format, dpi=1000)
+
+plt.show()
+
+
+
+## 4-2- Using Regressors
+
+
+X = df_cleaned.iloc[:, [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]]
+Y = df_cleaned.iloc[:, 0]
+X.columns = X.columns.astype(str)
+#Y                             
+#X
+
+
+
+### 4-2-1- FI using DT regressor
+from sklearn.tree import DecisionTreeRegressor
+model = DecisionTreeRegressor()
+# fit the model
+model.fit(X, Y)
+# get importance
+importance = model.feature_importances_
+# summarize feature importance
+for i,v in enumerate(importance):
+ print('Feature: %0d, Score: %.5f' % (i,v))
+# plot feature importance
+plt.bar([x for x in range(len(importance))], importance)
+plt.show()
+
+
+
+### 4-2-2- FI using RF regressor
+from sklearn.ensemble import RandomForestRegressor
+# define the model
+model = RandomForestRegressor()
+# fit the model
+model.fit(X,Y)
+# get importance
+importance = model.feature_importances_
+# summarize feature importance
+for i,v in enumerate(importance):
+ print('Feature: %0d, Score: %.5f' % (i,v))
+# plot feature importance
+plt.bar([x for x in range(len(importance))], importance)
+plt.show()
+
+
+
+### 4-2-3- FI using XGB regressor
+# xgboost for feature importance on a regression problem
+from xgboost import XGBRegressor
+# define the model
+model = XGBRegressor()
+# fit the model
+model.fit(X, Y)
+# get importance
+importance = model.feature_importances_
+# summarize feature importance
+for i,v in enumerate(importance):
+ print('Feature: %0d, Score: %.5f' % (i,v))
+# plot feature importance
+plt.bar([x for x in range(len(importance))], importance)
+plt.show()
+
+
+#........................................................................................
+
+
+
+# 5- Visualuzation 
+
+#........................................................................................
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# List of columns to plot
+columns = ["output", "input1", "input2", "input3", "input4", "input5", "input6", 
+           "input7", "input8", "input9", "input10", "input11", "input12", 
+           "input13", "input14", "input15", "input16", "input17", "input18", 
+           "input19", "input20", "input21"]
+
+# Create a FacetGrid
+g = sns.FacetGrid(df.melt(value_vars=columns), col="variable", col_wrap=4, sharex=False, sharey=False)
+
+# Map displot to the FacetGrid
+g.map(sns.histplot, "value")
+
+# Adjust the layout for better display
+g.set_titles("{col_name}")
+g.fig.tight_layout()
+
+plt.show()
+
+
+
+
+
+# List of columns to plot
+columns = ["output", "input1", "input2", "input3", "input4", "input5", "input6", 
+           "input7", "input8", "input9", "input10", "input11", "input12", 
+           "input13", "input14", "input15", "input16", "input17", "input18", 
+           "input19", "input20", "input21"]
+
+# Create subplots for each variable
+fig, axes = plt.subplots(nrows=6, ncols=4, figsize=(16, 24))
+axes = axes.flatten()
+
+# Loop through the columns and create violin plots
+for i, col in enumerate(columns):
+    sns.violinplot(data=df[col], ax=axes[i], inner='box', showmeans=True)
+    axes[i].set_title(f"Violin Plot of {col}")
+    axes[i].set_ylabel('Values')
+
+# Remove any unused subplots if the number of columns is less than the grid size
+for j in range(i+1, len(axes)):
+    fig.delaxes(axes[j])
+
+# Adjust layout
+plt.tight_layout()
+plt.show()
+
+#........................................................................................
+
+
+# 6- Splitting Dataset
+
+
+#........................................................................................
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size = 0.20, random_state = 0)
+print(x_train.shape)
+print(y_train.shape)
+print(x_test.shape)
+print(y_test.shape)
+
+
+#........................................................................................
+
+
+
+
+# 7- Training Models
+
+
+
+#........................................................................................
+
+## 7-1- SVR reg
+### 7-1-1- SVR first taining
+
+from sklearn.svm import SVR
+regressorSVR = SVR()          #kernel='rbf'
+regressorSVR.fit(x_train,y_train)
+
+
+### 7-1-2- SVR cross_validation
+#After training the model, we'll check the model training score.
+scores_SVR = cross_val_score(regressorSVR, x_train, y_train,cv=10)
+print("Mean cross-validation score: {:.2f} %".format(scores_SVR.mean()*100))
+print("Standard Deviation: {:.2f} %".format(scores_SVR.std()*100))
+
+
+### 7-1-3- Hyperparameter tuning of SVR 
+parameters = [{'degree': [1, 2, 3, 4], 
+               'kernel': ['linear','poly','rbf'],
+               'gamma': ['scale','auto']}]
+
+
+grid_search = GridSearchCV(
+    estimator=regressorSVR,
+    param_grid=parameters,
+    scoring = 'r2',   #scoring should be wisely chosen accrding to your problem(class. or reg.) (e.g., 'r2' for reg and 'accuracy' for class.)
+    n_jobs = -1,
+    cv = 5,
+    verbose=True,
+    error_score="raise"
+)
+
+grid_search.fit(x_train, y_train)
+
+grid_search.best_estimator_
+
+
+best_score = grid_search.best_score_
+print("Best Score (r2): {:.2f} %".format(best_score*100))
+
+best_parameters = grid_search.best_params_
+print("Best Parameters:", best_parameters)
+
+
+degree=best_parameters['degree']
+gamma=best_parameters['gamma']
+kernel=best_parameters['kernel']
+
+### 7-1-4- Modifing paramaters for Training and making prediction
+
+regressorSVR = SVR(
+    kernel=kernel,
+    gamma=gamma,
+    degree=degree,
+)          
+regressorSVR.fit(x_train,y_train)
+
+predictionsSVR = regressorSVR.predict(x_test)
+savetxt('predictionsSVR.csv', predictionsSVR, delimiter=',')
+
+rmse = np.sqrt(mean_squared_error(y_test, predictionsSVR))
+print("RMSE: %f" % (rmse))
+
+from sklearn.metrics import r2_score
+r2 = (r2_score(y_test, predictionsSVR))
+print("R_Squared Score : %f" % (r2))
+
+
+
+from sklearn.metrics import mean_absolute_error
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_test, predictionsSVR)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_test - predictionsSVR) / y_test)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+
+### 7-1-5- Plots
+#### 7-1-5-1- Test Plot
+
+import matplotlib.pyplot as plt
+
+# Set global font format to Times New Roman and adjust font size
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams.update({'font.size': 22})
+
+# Create a figure and axis with a specified size
+fig, ax = plt.subplots(figsize=(6, 6))
+
+# Scatter plot with the corrected 'label' argument
+ax.scatter(y_test, predictionsSVR, edgecolor='k', facecolor='grey', alpha=1, label='Sample data')
+
+# Set labels and title
+ax.set_ylabel('Predicted SVR')
+ax.set_xlabel('Real ')
+ax.set_title('Test Data set', fontsize=18)
+
+# Plot the 1:1 line
+plt.plot(y_test, y_test, 'black')
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+# Display the legend
+ax.legend(facecolor='white', fontsize=11)
+
+# Save the figure to a file
+plt.savefig('Test_ModelI_SVR.png')
+
+# Show the plot
+plt.show()
+
+
+#### 7-1-5-2- Train Plot
+predictionSVRtrain = regressorSVR.predict(x_train)
+rmse = np.sqrt(mean_squared_error(y_train, predictionSVRtrain))
+print("RMSE: %f" % (rmse))
+
+
+from sklearn.metrics import r2_score
+r2 = r2_score(y_train, predictionSVRtrain)
+print("R_Squared Score : %f" % (r2))
+
+
+from sklearn.metrics import mean_absolute_error
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_train, predictionSVRtrain)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_train - predictionSVRtrain) / y_train)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+import pandas as pd
+import numpy as np
+
+# Ensure y_train is a NumPy array for compatibility
+y_train_array = np.array(y_train)
+
+# Convert y_train to a DataFrame and save it as a CSV file
+y_train_df = pd.DataFrame(y_train_array, columns=['y_train'])
+y_train_df.to_csv("y_train_values.csv", index=False)
+
+print("y_train values saved to 'y_train_values.csv'")
+
+import numpy as np
+
+# Check if there are any zeros in y_train
+zero_count = np.sum(y_train == 0)
+if zero_count > 0:
+    print(f"There are {zero_count} zero values in y_train, which may cause division by zero in MAPE calculation.")
+    
+    # Optional: Display the indices of zero values
+    zero_indices = np.where(y_train == 0)[0]
+    print("Indices of zeros in y_train:", zero_indices)
+else:
+    print("No zero values found in y_train.")
+
+
+#### 7-1-5-2- Train Plot
+plt.rcParams["font.family"] = "Times New Roman"   #change the global format of fonts to time new roman
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(6, 6))
+
+ax.scatter(y_train, predictionSVRtrain, edgecolor='k', facecolor='grey', alpha=1) #label='Sample data'
+ax.set_ylabel('Predicted by SVR')
+ax.set_xlabel('Real')
+ax.legend(facecolor='white', fontsize=11)
+plt.plot(y_train, y_train ,'black')   #ploting the 1:1 line
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+ax.set_title('Train Data set', fontsize=18)
+
+plt.savefig('Train_ModelI_SVR.png')
+
+
+
+## 7-2- RF reg
+### 7-2-1-  RF first Training
+
+from sklearn.ensemble import RandomForestRegressor
+regressorRF = RandomForestRegressor()
+regressorRF.fit(x_train,y_train)
+
+
+### 7-2-2-  RF reg. cross_Validation
+
+#After training the model, we'll check the model training score.
+scores_RF = cross_val_score(regressorRF, x_train, y_train,cv=10)
+print("Mean cross-validation score: {:.2f} %".format(scores_RF.mean()*100))
+print("Standard Deviation: {:.2f} %".format(scores_RF.std()*100))
+
+
+### 7-2-3- Hyper parameter tuning of RF reg
+
+parameters = [{ 'n_estimators': [50, 100 ],
+              
+    'criterion': ['squared_error','absolute_error','friedman_mse','poisson'],
+    'max_features': [4, 5, "sqrt"]
+}]
+
+
+grid_search = GridSearchCV(
+    estimator=regressorRF,
+    param_grid=parameters,
+    scoring = 'r2',   #scoring should be wisely chosen accrding to your problem(class. or reg.) (e.g., 'r2' for reg and 'accuracy' for class.)
+    n_jobs = -1,
+    cv = 5,
+    verbose=True,
+    error_score="raise"
+)
+
+grid_search.fit(x_train, y_train)
+
+predictionsRF = regressorRF.predict(x_test)
+savetxt('predictionsRF.csv', predictionsRF, delimiter=',')
+
+rmse = np.sqrt(mean_squared_error(y_test, predictionsRF))
+print("RMSE: %f" % (rmse))
+
+from sklearn.metrics import r2_score
+r2 = (r2_score(y_test, predictionsRF))
+print("R_Squared Score : %f" % (r2))
+
+
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_test, predictionsRF)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_test - predictionsRF) / y_test)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+
+### 7-2-5- Plots
+#### 7-2-5-1- Test Plot
+
+
+import matplotlib.pyplot as plt
+
+# Set globalb font format to Times New Roman and adjust font size
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams.update({'font.size': 22})
+
+# Create a figure and axis with a specified size
+fig, ax = plt.subplots(figsize=(6, 6))
+
+# Scatter plot with the corrected 'label' argument
+ax.scatter(y_test, predictionsRF, edgecolor='k', facecolor='grey', alpha=1, label='Sample data')
+
+# Set labels and title
+ax.set_ylabel('Predicted RF')
+ax.set_xlabel('Real ')
+ax.set_title('Test Data set', fontsize=18)
+
+# Plot the 1:1 line
+plt.plot(y_test, y_test, 'black')
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+
+# Display the legend
+ax.legend(facecolor='white', fontsize=11)
+
+# Save the figure to a file
+plt.savefig('Test_ModelI_RF.png')
+
+# Show the plot
+plt.show()
+
+
+
+#### 7-2-5-2- Train Plot
+predictionRFtrain = regressorRF.predict(x_train)
+rmse = np.sqrt(mean_squared_error(y_train, predictionRFtrain))
+print("RMSE: %f" % (rmse))
+
+
+from sklearn.metrics import r2_score
+r2 = r2_score(y_train, predictionRFtrain)
+print("R_Squared Score : %f" % (r2))
+
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_train, predictionRFtrain)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_train - predictionRFtrain) / y_train)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+
+plt.rcParams["font.family"] = "Times New Roman"   #change the global format of fonts to time new roman
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(6, 6))
+
+ax.scatter(y_train, predictionRFtrain, edgecolor='k', facecolor='grey', alpha=1) #label='Sample data'
+ax.set_ylabel('Predicted by RF')
+ax.set_xlabel('Real')
+ax.legend(facecolor='white', fontsize=11)
+plt.plot(y_train, y_train ,'black')   #ploting the 1:1 line
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+ax.set_title('Train Data set', fontsize=18)
+
+plt.savefig('Train_ModelI_RF.png')
+
+
+
+
+
+## 7-3- XGB reg
+
+regressorXGB = xgb.XGBRegressor()
+
+regressorXGB.fit(x_train,y_train)
+predictionXGB1 = regressorXGB.predict(x_test)
+#savetxt('predictionXGB.csv', predictionXGB, delimiter=',')
+
+rmse = np.sqrt(mean_squared_error(y_test, predictionXGB1))
+print("RMSE: %f" % (rmse))
+
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, predictionXGB1)
+print("R_Squared Score : %f" % (r2))
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_test, predictionXGB1)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_test - predictionXGB1) / y_test)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+
+####  7-3-1-  Result Plot 
+##### 7-3-1-1- Test Data set
+
+plt.rcParams["font.family"] = "Times New Roman"   #change the global format of fonts to time new roman
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(6, 6))
+
+ax.scatter(y_test, predictionXGB1, edgecolor='k', facecolor='grey', alpha=1) #label='Sample data'
+ax.set_ylabel('Predicted ROP by XGB (m/h)')
+ax.set_xlabel('Real ROP (m/h)')
+ax.legend(facecolor='white', fontsize=11)
+plt.plot(y_test, y_test ,'black')   #ploting the 1:1 line
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+ax.set_title('Test Data set', fontsize=18)
+
+
+#fig.tight_layout()
+
+#ax.set_title('RMSE: %f' % rmse, fontsize=18)
+#plt.style.use('default')
+#plt.style.use('ggplot')
+plt.savefig('Test_ModelI_XGB.png')
+
+
+##### 7-3-1-2- Train Data set
+predictionXGBtrain = regressorXGB.predict(x_train)
+rmse = np.sqrt(mean_squared_error(y_train, predictionXGBtrain))
+print("RMSE: %f" % (rmse))
+
+from sklearn.metrics import r2_score
+r2 = r2_score(y_train, predictionXGBtrain)
+print("R_Squared Score : %f" % (r2))
+
+
+# Calculate Mean Absolute Error (MAE)
+mae = mean_absolute_error(y_train, predictionXGBtrain)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+# Calculate Mean Absolute Percentage Error (MAPE)
+mape = np.mean(np.abs((y_train - predictionXGBtrain) / y_train)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+
+
+
+plt.rcParams["font.family"] = "Times New Roman"   #change the global format of fonts to time new roman
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(6, 6))
+
+ax.scatter(y_train, predictionXGBtrain, edgecolor='k', facecolor='grey', alpha=1) #label='Sample data'
+ax.set_ylabel('Predicted ROP by XGB (m/h)')
+ax.set_xlabel('Real ROP (m/h)')
+ax.legend(facecolor='white', fontsize=11)
+plt.plot(y_train,y_train ,'black')   #ploting the 1:1 line
+
+# Add RMSE, R-squared, MAE, MAPE  text to the plot
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+ax.set_title('Train Data set', fontsize=18)
+
+plt.savefig('Train_ModelI_XGB.png')
+
+
+
+
+## 7-4- DT reg
+
+
+### Import necessary libraries
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from numpy import savetxt
+import numpy as np
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import matplotlib.pyplot as plt
+
+### 6-4-1- Decision Tree first Training
+regressorDT = DecisionTreeRegressor()
+regressorDT.fit(x_train, y_train)
+
+### 6-2-2- Decision Tree reg. cross_Validation
+# After training the model, we'll check the model training score.
+scores_DT = cross_val_score(regressorDT, x_train, y_train, cv=10)
+print("Mean cross-validation score: {:.2f} %".format(scores_DT.mean() * 100))
+print("Standard Deviation: {:.2f} %".format(scores_DT.std() * 100))
+
+### 6-2-3- Hyperparameter tuning of Decision Tree regressor
+parameters = [{
+    'criterion': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
+    'splitter': ['best', 'random'],
+    'max_features': [4, 5, "sqrt"]
+}]
+
+grid_search = GridSearchCV(
+    estimator=regressorDT,
+    param_grid=parameters,
+    scoring='r2',  # Using R2 for regression problems
+    n_jobs=-1,
+    cv=5,
+    verbose=True,
+    error_score="raise"
+)
+
+grid_search.fit(x_train, y_train)
+
+# Prediction and Evaluation on Test Set
+predictionsDT = regressorDT.predict(x_test)
+savetxt('predictionsDT.csv', predictionsDT, delimiter=',')
+
+rmse = np.sqrt(mean_squared_error(y_test, predictionsDT))
+print("RMSE: %f" % rmse)
+
+r2 = r2_score(y_test, predictionsDT)
+print("R_Squared Score: %f" % r2)
+
+mae = mean_absolute_error(y_test, predictionsDT)
+print("Mean Absolute Error (MAE): %f" % mae)
+
+mape = np.mean(np.abs((y_test - predictionsDT) / y_test)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape)
+
+### 6-1-5- Test Plot
+
+# Set global font format to Times New Roman and adjust font size
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.scatter(y_test, predictionsDT, edgecolor='k', facecolor='grey', alpha=1, label='Sample data')
+ax.set_ylabel('Predicted by DT')
+ax.set_xlabel('Real')
+ax.set_title('Test Data set', fontsize=18)
+plt.plot(y_test, y_test, 'black')
+
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape, fontsize=15)
+
+ax.legend(facecolor='white', fontsize=11)
+plt.savefig('Test_ModelI_DT.png')
+plt.show()
+
+### 6-1-5- Train Plot
+
+# Predictions and Evaluation on Train Set
+predictionDTtrain = regressorDT.predict(x_train)
+rmse_train = np.sqrt(mean_squared_error(y_train, predictionDTtrain))
+print("RMSE: %f" % rmse_train)
+
+r2_train = r2_score(y_train, predictionDTtrain)
+print("R_Squared Score: %f" % r2_train)
+
+mae_train = mean_absolute_error(y_train, predictionDTtrain)
+print("Mean Absolute Error (MAE): %f" % mae_train)
+
+mape_train = np.mean(np.abs((y_train - predictionDTtrain) / y_train)) * 100
+print("Mean Absolute Percentage Error (MAPE): %f%%" % mape_train)
+
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.scatter(y_train, predictionDTtrain, edgecolor='k', facecolor='grey', alpha=1)
+ax.set_ylabel('Predicted by DT')
+ax.set_xlabel('Real')
+plt.plot(y_train, y_train, 'black')
+
+plt.text(0.25, 0.82, '$RMSE: %.2f$' % rmse_train, fontsize=15)
+plt.text(0.25, 0.77, '$R^2= %.2f$' % r2_train, fontsize=15)
+plt.text(0.25, 0.72, '$MAE: %.2f$' % mae_train, fontsize=15)
+plt.text(0.25, 0.67, '$MAPE: %.2f\\%%$' % mape_train, fontsize=15)
+
+ax.set_title('Train Data set', fontsize=18)
+plt.savefig('Train_ModelI_DT.png')
+plt.show()
+
+
+# 8- Saving the algorithms
+pip install joblib
+import joblib
+joblib.dump(regressorSVR, 'regressorSVR.pkl')
+
+
+
